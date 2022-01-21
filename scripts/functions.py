@@ -19,42 +19,48 @@ class robot:
     def __init__(self, name):
         self.assigned_point = []
         self.name = name
-        self.global_frame = rospy.get_param('~global_frame', '/map')
-        self.robot_frame = rospy.get_param('~robot_frame', 'base_link')
+        self.global_frame = rospy.get_param('~global_frame', 'robot_map')
+        self.robot_frame = rospy.get_param('~robot_frame', 'robot_base_link')
         self.plan_service = rospy.get_param(
-            '~plan_service', '/move_base_node/NavfnROS/make_plan')
+            '~plan_service', '/robot/move_base/NavfnROS/make_plan')
         self.listener = tf.TransformListener()
         self.listener.waitForTransform(
-            self.global_frame, self.name+'/'+self.robot_frame, rospy.Time(0), rospy.Duration(10.0))
+            self.global_frame, self.robot_frame, rospy.Time(0), rospy.Duration(10.0))
         cond = 0
+        rospy.loginfo('Inicio robot transform')
         while cond == 0:
             try:
                 rospy.loginfo('Waiting for the robot transform')
                 (trans, rot) = self.listener.lookupTransform(
-                    self.global_frame, self.name+'/'+self.robot_frame, rospy.Time(0))
+                    self.global_frame, self.robot_frame, rospy.Time(0))
                 cond = 1
             except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
                 cond == 0
+        rospy.loginfo('Final robot trnasform')
         self.position = array([trans[0], trans[1]])
         self.assigned_point = self.position
         self.client = actionlib.SimpleActionClient(
-            self.name+'/move_base', MoveBaseAction)
+            '/robot/move_base', MoveBaseAction)
         self.client.wait_for_server()
+        rospy.loginfo('Final server goal')
         robot.goal.target_pose.header.frame_id = self.global_frame
         robot.goal.target_pose.header.stamp = rospy.Time.now()
-
-        rospy.wait_for_service(self.name+self.plan_service)
+        rospy.wait_for_service(self.plan_service)
+        rospy.loginfo('Final server plan')
         self.make_plan = rospy.ServiceProxy(
-            self.name+self.plan_service, GetPlan)
+            self.plan_service, GetPlan)
+        rospy.loginfo('Final creacion plan')
         robot.start.header.frame_id = self.global_frame
         robot.end.header.frame_id = self.global_frame
+        rospy.loginfo('Final inicializacion')
+
 
     def getPosition(self):
         cond = 0
         while cond == 0:
             try:
                 (trans, rot) = self.listener.lookupTransform(
-                    self.global_frame, self.name+'/'+self.robot_frame, rospy.Time(0))
+                    self.global_frame, self.robot_frame, rospy.Time(0))
                 cond = 1
             except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
                 cond == 0
@@ -80,8 +86,8 @@ class robot:
         robot.start.pose.position.y = start[1]
         robot.end.pose.position.x = end[0]
         robot.end.pose.position.y = end[1]
-        start = self.listener.transformPose(self.name+'/map', robot.start)
-        end = self.listener.transformPose(self.name+'/map', robot.end)
+        start = self.listener.transformPose('robot_map', robot.start)
+        end = self.listener.transformPose('robot_map', robot.end)
         plan = self.make_plan(start=start, goal=end, tolerance=0.0)
         return plan.plan.poses
 # ________________________________________________________________________________
@@ -199,14 +205,18 @@ def gridValue(mapData, Xp):
     resolution = mapData.info.resolution
     Xstartx = mapData.info.origin.position.x
     Xstarty = mapData.info.origin.position.y
-
+    cont=0
     width = mapData.info.width
     Data = mapData.data
     # returns grid value at "Xp" location
     # map data:  100 occupied      -1 unknown       0 free
     index = (floor((Xp[1]-Xstarty)/resolution)*width) + \
         (floor((Xp[0]-Xstartx)/resolution))
-
+    #rospy.loginfo("Res:%f Xstartx:%d Xstarty:%d width:%d Xp[0]:%f Xp[1]:%f int(index):%d len(Data):%d", resolution,Xstartx,Xstarty,width, Xp[0],Xp[1],int(index),len(Data))
+    #for z in range (len(Data)):
+    #    if (Data[z]==100):
+    #        cont += 1
+    #rospy.loginfo("Espacios Libres:%d", cont)
     if int(index) < len(Data):
         return Data[int(index)]
     else:

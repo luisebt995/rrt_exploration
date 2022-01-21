@@ -33,15 +33,17 @@ rdm r; // for genrating random numbers
 //Subscribers callback functions---------------------------------------
 void mapCallBack(const nav_msgs::OccupancyGrid::ConstPtr& msg)
 {
+  //ROS_INFO("Entrada callback map local");
 mapData=*msg;
 }
 
 
- 
-void rvizCallBack(const geometry_msgs::PointStamped::ConstPtr& msg)
-{ 
 
-geometry_msgs::Point p;  
+void rvizCallBack(const geometry_msgs::PointStamped::ConstPtr& msg)
+{
+  ROS_INFO("Entrada callback points local");
+
+geometry_msgs::Point p;
 p.x=msg->point.x;
 p.y=msg->point.y;
 p.z=msg->point.z;
@@ -66,28 +68,28 @@ int main(int argc, char **argv)
 // generate the same numbers as in the original C test program
   ros::init(argc, argv, "local_rrt_frontier_detector");
   ros::NodeHandle nh;
-  
+
   // fetching all parameters
   float eta,init_map_x,init_map_y,range;
   std::string map_topic,base_frame_topic;
-  
+
   std::string ns;
   ns=ros::this_node::getName();
 
   ros::param::param<float>(ns+"/eta", eta, 0.5);
-  ros::param::param<std::string>(ns+"/map_topic", map_topic, "/robot_1/map"); 
-  ros::param::param<std::string>(ns+"/robot_frame", base_frame_topic, "/robot_1/base_link"); 
+  ros::param::param<std::string>(ns+"/map_topic", map_topic, "/robot_1/map");
+  ros::param::param<std::string>(ns+"/robot_frame", base_frame_topic, "/robot_1/base_link");
 //---------------------------------------------------------------
-ros::Subscriber sub= nh.subscribe(map_topic, 100 ,mapCallBack);	
-ros::Subscriber rviz_sub= nh.subscribe("/clicked_point", 100 ,rvizCallBack);	
+ros::Subscriber sub= nh.subscribe("/robot/map", 100 ,mapCallBack);
+ros::Subscriber rviz_sub= nh.subscribe("/clicked_point", 100 ,rvizCallBack);
 
 ros::Publisher targetspub = nh.advertise<geometry_msgs::PointStamped>("/detected_points", 10);
 ros::Publisher pub = nh.advertise<visualization_msgs::Marker>(ns+"_shapes", 10);
 
-ros::Rate rate(100); 
- 
- 
-// wait until map is received, when a map is received, mapData.header.seq will not be < 1  
+ros::Rate rate(100);
+
+
+// wait until map is received, when a map is received, mapData.header.seq will not be < 1
 while (mapData.header.seq<1 or mapData.data.size()<1)  {  ros::spinOnce();  ros::Duration(0.1).sleep();}
 
 
@@ -97,7 +99,7 @@ points.header.frame_id=mapData.header.frame_id;
 line.header.frame_id=mapData.header.frame_id;
 points.header.stamp=ros::Time(0);
 line.header.stamp=ros::Time(0);
-	
+
 points.ns=line.ns = "markers";
 points.id = 0;
 line.id =1;
@@ -113,8 +115,8 @@ points.pose.orientation.w =1.0;
 line.pose.orientation.w = 1.0;
 line.scale.x =  0.03;
 line.scale.y= 0.03;
-points.scale.x=0.3; 
-points.scale.y=0.3; 
+points.scale.x=0.3;
+points.scale.y=0.3;
 
 line.color.r =255.0/255.0;
 line.color.g= 0.0/255.0;
@@ -127,7 +129,7 @@ line.color.a = 1.0;
 points.lifetime = ros::Duration();
 line.lifetime = ros::Duration();
 
-geometry_msgs::Point p;  
+geometry_msgs::Point p;
 
 
 while(points.points.size()<5)
@@ -143,8 +145,8 @@ pub.publish(points) ;
 std::vector<float> temp1;
 temp1.push_back(points.points[0].x);
 temp1.push_back(points.points[0].y);
-	
-std::vector<float> temp2; 
+
+std::vector<float> temp2;
 temp2.push_back(points.points[2].x);
 temp2.push_back(points.points[0].y);
 
@@ -170,9 +172,9 @@ Xstarty=(points.points[0].y+points.points[2].y)*.5;
 
 geometry_msgs::Point trans;
 trans=points.points[4];
-std::vector< std::vector<float>  > V; 
-std::vector<float> xnew; 
-xnew.push_back( trans.x);xnew.push_back( trans.y);  
+std::vector< std::vector<float>  > V;
+std::vector<float> xnew;
+xnew.push_back( trans.x);xnew.push_back( trans.y);
 V.push_back(xnew);
 
 points.points.clear();
@@ -221,17 +223,17 @@ char   checking=ObstacleFree(x_nearest,x_new,mapData);
           	exploration_goal.point.x=x_new[0];
           	exploration_goal.point.y=x_new[1];
           	exploration_goal.point.z=0.0;
-          	p.x=x_new[0]; 
-			p.y=x_new[1]; 
+          	p.x=x_new[0];
+			p.y=x_new[1];
 			p.z=0.0;
-					
+
           	points.points.push_back(p);
           	pub.publish(points) ;
           	targetspub.publish(exploration_goal);
 		  	points.points.clear();
 		  	V.clear();
-		  	
-		  	
+
+
 			tf::StampedTransform transform;
 			int  temp=0;
 			while (temp==0){
@@ -243,23 +245,23 @@ char   checking=ObstacleFree(x_nearest,x_new,mapData);
 			temp=0;
 			ros::Duration(0.1).sleep();
 			}}
-			
+
 			x_new[0]=transform.getOrigin().x();
 			x_new[1]=transform.getOrigin().y();
         	V.push_back(x_new);
         	line.points.clear();
         	}
-	  	
-	  
+
+
 	  else if (checking==1){
 	 	V.push_back(x_new);
-	 	
-	 	p.x=x_new[0]; 
-		p.y=x_new[1]; 
+
+	 	p.x=x_new[0];
+		p.y=x_new[1];
 		p.z=0.0;
 	 	line.points.push_back(p);
-	 	p.x=x_nearest[0]; 
-		p.y=x_nearest[1]; 
+	 	p.x=x_nearest[0];
+		p.y=x_nearest[1];
 		p.z=0.0;
 	 	line.points.push_back(p);
 
@@ -267,10 +269,10 @@ char   checking=ObstacleFree(x_nearest,x_new,mapData);
 
 
 
-pub.publish(line);  
+pub.publish(line);
 
 
-   
+
 
 ros::spinOnce();
 rate.sleep();

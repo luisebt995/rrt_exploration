@@ -20,6 +20,7 @@ globalmaps = []
 
 
 def callBack(data, args):
+    #rospy.loginfo('Entrada callBack filter')
     global frontiers, min_distance
     transformedPoint = args[0].transformPoint(args[1], data)
     x = [array([transformedPoint.point.x, transformedPoint.point.y])]
@@ -62,7 +63,7 @@ def node():
     namespace_init_count = rospy.get_param('namespace_init_count', 1)
     rateHz = rospy.get_param('~rate', 100)
     global_costmap_topic = rospy.get_param(
-        '~global_costmap_topic', '/move_base_node/global_costmap/costmap')
+        '~global_costmap_topic', '/robot/move_base/global_costmap/costmap')
     robot_frame = rospy.get_param('~robot_frame', 'base_link')
 
     litraIndx = len(namespace)
@@ -78,8 +79,7 @@ def node():
 
     if len(namespace) > 0:
         for i in range(0, n_robots):
-            rospy.Subscriber(namespace+str(i+namespace_init_count) +
-                             global_costmap_topic, OccupancyGrid, globalMap)
+            rospy.Subscriber(global_costmap_topic, OccupancyGrid, globalMap)
     elif len(namespace) == 0:
         rospy.Subscriber(global_costmap_topic, OccupancyGrid, globalMap)
 # wait if map is not received yet
@@ -99,11 +99,10 @@ def node():
     tfLisn = tf.TransformListener()
     if len(namespace) > 0:
         for i in range(0, n_robots):
-            tfLisn.waitForTransform(global_frame[1:], namespace+str(
-                i+namespace_init_count)+'/'+robot_frame, rospy.Time(0), rospy.Duration(10.0))
+            tfLisn.waitForTransform(global_frame[1:], 'robot_base_link', rospy.Time(0), rospy.Duration(10.0))
     elif len(namespace) == 0:
         tfLisn.waitForTransform(
-            global_frame[1:], '/'+robot_frame, rospy.Time(0), rospy.Duration(10.0))
+            global_frame[1:], 'robot_base_link', rospy.Time(0), rospy.Duration(10.0))
 
     rospy.Subscriber(goals_topic, PointStamped, callback=callBack,
                      callback_args=[tfLisn, global_frame[1:]])
@@ -197,6 +196,8 @@ def node():
         if len(front) == 1:
             centroids = front
         frontiers = copy(centroids)
+        #rospy.loginfo(len(centroids))
+        #rospy.loginfo("valor centroid: %f  %f",centroids[0][0],centroids[0][1])
 # -------------------------------------------------------------------------
 # clearing old frontiers
 
@@ -212,10 +213,16 @@ def node():
                     globalmaps[i].header.frame_id, temppoint)
                 x = array([transformedPoint.point.x, transformedPoint.point.y])
                 cond = (gridValue(globalmaps[i], x) > threshold) or cond
+                #rospy.loginfo("Valor gridValue:%d", gridValue(globalmaps[i], x))
+            #rospy.loginfo("Valor informationGain:%f", informationGain(mapData, [centroids[z][0], centroids[z][1]], info_radius*0.5))
             if (cond or (informationGain(mapData, [centroids[z][0], centroids[z][1]], info_radius*0.5)) < 0.2):
+                #rospy.loginfo("Entrada eliminacion centroid, z:%d", z)
                 centroids = delete(centroids, (z), axis=0)
                 z = z-1
             z += 1
+            #rospy.loginfo("Entrada eliminacion centroid, z:%d", z)
+            #rospy.loginfo(len(centroids))
+            #rospy.loginfo("valor centroid: %f  %f",centroids[0][0],centroids[0][1])
 # -------------------------------------------------------------------------
 # publishing
         arraypoints.points = []
@@ -223,6 +230,7 @@ def node():
             tempPoint.x = i[0]
             tempPoint.y = i[1]
             arraypoints.points.append(copy(tempPoint))
+        #rospy.loginfo("valor arraypoints: %f  %f",arraypoints.points[0].x,arraypoints.points[0].y)
         filterpub.publish(arraypoints)
         pp = []
         for q in range(0, len(frontiers)):
@@ -236,7 +244,9 @@ def node():
             p.y = centroids[q][1]
             pp.append(copy(p))
         points_clust.points = pp
+        #rospy.loginfo("valor frontier: %f  %f",points.points[0].x,points.points[0].y)
         pub.publish(points)
+        #rospy.loginfo("valor centroids: %f  %f",points_clust.points[0].x,points_clust.points[0].y)
         pub2.publish(points_clust)
         rate.sleep()
 # -------------------------------------------------------------------------
