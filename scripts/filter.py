@@ -24,13 +24,13 @@ def callBack(data, args):
     global frontiers, min_distance
     transformedPoint = args[0].transformPoint(args[1], data)
     x = [array([transformedPoint.point.x, transformedPoint.point.y])]
-    posicionamiento=args[2].getPosition()
-    condposes=args[2].makePlan(posicionamiento,x[0]) 
-    if len(condposes)!=0: #
-        if len(frontiers) > 0:
-            frontiers = vstack((frontiers, x))
-        else:
-            frontiers = x
+    #posicionamiento=args[2].getPosition()
+    #condposes=args[2].makePlan(posicionamiento,x[0])
+    #if len(condposes)!=0: #
+    if len(frontiers) > 0:
+        frontiers = vstack((frontiers, x))
+    else:
+        frontiers = x
 
 
 def mapCallBack(data):
@@ -219,10 +219,11 @@ def node():
                     globalmaps[i].header.frame_id, temppoint)
                 x = array([transformedPoint.point.x, transformedPoint.point.y])
                 cond = (gridValue(globalmaps[i], x) > threshold) or cond
-                #posicionamiento=robots[0].getPosition()
-                #condposes=robots[0].makePlan(posicionamiento,x)
-                #if len(condposes)==0:
-                #    cond = True
+                if cond == False:
+                    posicionamiento=robots[0].getPosition()
+                    condposes=robots[0].makePlan(posicionamiento,x)
+                    if len(condposes)==0:
+                        cond = True
             if (cond or (informationGain(mapData, [centroids[z][0], centroids[z][1]], info_radius*0.5)) < 0.2):
                 centroids = delete(centroids, (z), axis=0)
                 z = z-1
