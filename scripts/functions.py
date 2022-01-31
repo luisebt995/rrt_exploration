@@ -21,13 +21,14 @@ class robot:
         self.name = name
         self.global_frame = rospy.get_param('~global_frame', 'robot_map')
         self.robot_frame = rospy.get_param('~robot_frame', 'robot_base_link')
+        #self.plan_service = rospy.get_param(
+        #    '~plan_service', '/robot/move_base/NavfnROS/make_plan')
         self.plan_service = rospy.get_param(
-            '~plan_service', '/robot/move_base/NavfnROS/make_plan')
+            '~plan_service', '/robot/move_base/GlobalPlanner/make_plan')
         self.listener = tf.TransformListener()
         self.listener.waitForTransform(
             self.global_frame, self.robot_frame, rospy.Time(0), rospy.Duration(10.0))
         cond = 0
-        rospy.loginfo('Inicio robot transform')
         while cond == 0:
             try:
                 rospy.loginfo('Waiting for the robot transform')
@@ -36,23 +37,18 @@ class robot:
                 cond = 1
             except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
                 cond == 0
-        rospy.loginfo('Final robot trnasform')
         self.position = array([trans[0], trans[1]])
         self.assigned_point = self.position
         self.client = actionlib.SimpleActionClient(
             '/robot/move_base', MoveBaseAction)
         self.client.wait_for_server()
-        rospy.loginfo('Final server goal')
         robot.goal.target_pose.header.frame_id = self.global_frame
         robot.goal.target_pose.header.stamp = rospy.Time.now()
         rospy.wait_for_service(self.plan_service)
-        rospy.loginfo('Final server plan')
         self.make_plan = rospy.ServiceProxy(
             self.plan_service, GetPlan)
-        rospy.loginfo('Final creacion plan')
         robot.start.header.frame_id = self.global_frame
         robot.end.header.frame_id = self.global_frame
-        rospy.loginfo('Final inicializacion')
 
 
     def getPosition(self):

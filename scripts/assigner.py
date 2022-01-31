@@ -72,9 +72,7 @@ def node():
 	elif len(namespace)==0:
 			robots.append(robot(namespace))
 	for i in range(0,n_robots):
-		rospy.loginfo("Comienzo mandar goal")
 		robots[i].sendGoal(robots[i].getPosition())
-		rospy.loginfo("Fin mandar goal")
 
 #-------------------------------------------------------------------------
 #---------------------     Main   Loop     -------------------------------
@@ -105,6 +103,7 @@ def node():
 		revenue_record=[]
 		centroid_record=[]
 		id_record=[]
+		maxim=0
 
 		for ir in na:
 			for ip in range(0,len(centroids)):
@@ -115,6 +114,12 @@ def node():
 
 					information_gain*=hysteresis_gain
 				revenue=information_gain*info_multiplier-cost
+				if revenue>maxim:
+					posicionamiento=robots[ir].getPosition()
+					condposes=robots[ir].makePlan(posicionamiento,centroids[ip])
+					#rospy.loginfo("CONDPOSES %d",len(condposes))
+					if len(condposes)==0:
+						revenue=0
 				revenue_record.append(revenue)
 				centroid_record.append(centroids[ip])
 				id_record.append(ir)
@@ -133,15 +138,21 @@ def node():
 
 					if ((norm(centroids[ip]-robots[ir].assigned_point))<hysteresis_radius):
 						information_gain=informationGain(mapData,[centroids[ip][0],centroids[ip][1]],info_radius)*hysteresis_gain
-
 					revenue=information_gain*info_multiplier-cost
+					if revenue>maxim:
+						maxim=revenue
+						posicionamiento=robots[ir].getPosition()
+						condposes=robots[ir].makePlan(posicionamiento,centroids[ip])
+						#rospy.loginfo("CONDPOSES %d",len(condposes))
+						if len(condposes)==0:
+							revenue=0
 					revenue_record.append(revenue)
 					centroid_record.append(centroids[ip])
 					id_record.append(ir)
 
-		rospy.loginfo("revenue record: "+str(revenue_record))
-		rospy.loginfo("centroid record: "+str(centroid_record))
-		rospy.loginfo("robot IDs record: "+str(id_record))
+		#rospy.loginfo("revenue record: "+str(revenue_record))
+		#rospy.loginfo("centroid record: "+str(centroid_record))
+		#rospy.loginfo("robot IDs record: "+str(id_record))
 
 #-------------------------------------------------------------------------
 		if (len(id_record)>0):
