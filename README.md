@@ -6,14 +6,12 @@ Descargar el paquete summit_xl_common modificado con los parámetros del global_
 
 ```
 git clone https://github.com/luisebt995/summit_xl_common
-
 ```
 
 Descargar el paquete de navegación automática con algoritmo de exploración RRT.
 
 ```
 $ git clone https://github.com/luisebt995/rrt_exploration
-
 ```
 ## Modificaciones a realizar
 
@@ -34,7 +32,7 @@ $ git clone https://github.com/luisebt995/rrt_exploration
 roslaunch summit_xl_sim_bringup summit_xl_complete.launch
 ```
 
-    - Si se desea probar con otros mundos, descargar el paquete robotnik_gazebo_world y modificar el parámetro de gazebo_world
+  - Si se desea probar con otros mundos, descargar el paquete robotnik_gazebo_world y modificar el parámetro de gazebo_world
 ```
 roslaunch summit_xl_sim_bringup summit_xl_complete.launch gazebo_world:=opil_factory.world
 ```
