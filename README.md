@@ -1,14 +1,66 @@
+# Implementación Algoritmo RRT para navegación autónoma
+
+## Paquetes a descarga
+
+Descargar el paquete summit_xl_common modificado con los parámetros del global_costmap
+
+```
+git clone https://github.com/luisebt995/summit_xl_common
+
+```
+
+Descargar el paquete de navegación automática con algoritmo de exploración RRT.
+
+```
+$ git clone https://github.com/luisebt995/rrt_exploration
+
+```
+## Modificaciones a realizar
+
+  - Verificar que todos los paquetes especificados en https://github.com/hasauino/rrt_exploration esten instalados
+  - En el single.launch del rrt_exploration cerciorarse que se está utilizando el tópico correcto de map_topic y el frame correcto de global frame en todos los nodos donde se solicita.
+  - En el fichero rrt_exploration/scripts/functions.py modificar estos parametros
+    - global_frame al valor tf del map del robot
+    - robot_frame al valor tf del base_link  del robot
+    - plan_service al servicio make plan correspondiente al global planner seleccionado
+  - En el fichero rrt_exploration/scripts/filter.py modificar estos parámetros
+    - global_costmap_topic al valor del topic de costmap generado por el move_base
+    - robot_frame al valor tf del base_link del robot
+
+## Ejecución
+
+  - Lanzar simulación de summit con el paquete summit_xl_sim_bringup y el archivo summit_xl_complete.launch
+```
+roslaunch summit_xl_sim_bringup summit_xl_complete.launch
+```
+
+    - Si se desea probar con otros mundos, descargar el paquete robotnik_gazebo_world y modificar el parámetro de gazebo_world
+```
+roslaunch summit_xl_sim_bringup summit_xl_complete.launch gazebo_world:=opil_factory.world
+```
+
+  - Lanzar el nodo de navegación en el paquete rrt_exploration con el archivo single.launch
+```
+roslaunch rrt_exploration single.launch
+```
+
+  - Dejar que el algoritmo explore el mundo, y una vez finalizada la exploracion guardar el mapa con el comando
+```
+rosrun map_server map_saver -f mymap
+```
+
+
 # rrt_exploration
 It is a ROS package that implements a multi-robot map exploration algorithm for mobile robots. It is based on the Rapidly-Exploring Random Tree (RRT) algorithm. It uses occupancy girds as a map representation.The packgae has 5 different ROS nodes:
 
   - Global RRT frontier point detector node.
-  
+
   - Local RRT frontier point detector node.
-  
+
   - Filter node.
-  
+
   - Assigner node.
-  
+
   - opencv-based frontier detector node.
 
 This is a [Youtube playlist](https://www.youtube.com/playlist?list=PLoGH52eUIHsc1B_xPLL6ogzYxrWy675kr) showing the package running on single/multiple robots, using real setup (Kobuki robots) and simulation (Gazebo).
@@ -56,7 +108,7 @@ This package provides an exploration strategy for single or multiple robots. How
 Note: If you want to quickly run and test the package, you can try out the [rrt_exploration_tutorials](https://github.com/hasauino/rrt_exploration_tutorials) package which provides Gazebo simulation for single and multiple robots, you can use it to directly with this package.
 
 ### 3.1. Robots Network
-For the multi-robot configuration, the package doesn't require special network configuration, it simply works by having a single ROS master (can be one of the robots). So on the other robots, the ```ROS_MASTER_URI``` parameter should be pointing at the master's address. 
+For the multi-robot configuration, the package doesn't require special network configuration, it simply works by having a single ROS master (can be one of the robots). So on the other robots, the ```ROS_MASTER_URI``` parameter should be pointing at the master's address.
 For more information on setting up ROS on multiple machines, follow [this](http://wiki.ros.org/ROS/NetworkSetup) link.
 
 ### 3.2. Robot's frame names in ```tf```
@@ -70,7 +122,7 @@ All the nodes and topics running on a robot must also be prefixed by its name. F
 And topic names should be like: ```/robot_1/odom```,  ```/robot_1/map```,  ```/robot_1/base_scan```, ..etc.
 
 ### 3.4. Setting up the navigation stack on the robots
-The ```move_base_node``` node, which brings up the navigation stack on the robot, must be running. This package (rrt_exploration) generates target exploration goals, each robot must be able to receive these points and move towards them. This is why the navigation stack is needed. Additionally, each robot must have a global and local cost maps. All of these are proivded from the ```move_base_node```. 
+The ```move_base_node``` node, which brings up the navigation stack on the robot, must be running. This package (rrt_exploration) generates target exploration goals, each robot must be able to receive these points and move towards them. This is why the navigation stack is needed. Additionally, each robot must have a global and local cost maps. All of these are proivded from the ```move_base_node```.
 
 ### 3.5. A mapping node
 Each robot should have a local map generated from the [gmapping](http://wiki.ros.org/gmapping) package.
@@ -81,7 +133,7 @@ There are 3 types of nodes; nodes for detecting frontier points in an occupancy 
 ![alt text](https://github.com/hasauino/storage/blob/master/pictures/fullSchematic.png "overview of the exploration strategy")
 
 ### 4.1. global_rrt_frontier_detector
-The ```global_rrt_frontier_detector``` node takes an occupancy grid and finds frontier points (which are exploration targets) in it. It publishes the detected points so the filter node can process. In multi-robot configuration, it is intended to have only a single instance of this node running. 
+The ```global_rrt_frontier_detector``` node takes an occupancy grid and finds frontier points (which are exploration targets) in it. It publishes the detected points so the filter node can process. In multi-robot configuration, it is intended to have only a single instance of this node running.
 
 Running additional instances of the global frontier detector can enhance the speed of frontier points detection, if needed.
 #### 4.1.1. Parameters
@@ -116,7 +168,7 @@ All detectors will be publishing detected frontier points on the same topic (```
 #### 4.2.2. Subscribed Topics
  - The map (Topic name is defined by the ```~map_topic``` parameter) ([nav_msgs/OccupancyGrid](http://docs.ros.org/api/nav_msgs/html/msg/OccupancyGrid.html)).
 
-- ```clicked_point``` ([geometry_msgs/PointStamped Message](http://docs.ros.org/api/geometry_msgs/html/msg/PointStamped.html)): The ```lobal_rrt_frontier_detector``` also subscribes to this topic similar to the global_rrt_frontier_detector. 
+- ```clicked_point``` ([geometry_msgs/PointStamped Message](http://docs.ros.org/api/geometry_msgs/html/msg/PointStamped.html)): The ```lobal_rrt_frontier_detector``` also subscribes to this topic similar to the global_rrt_frontier_detector.
 #### 4.2.3. Published Topics
  - ```detected_points``` ([geometry_msgs/PointStamped Message](http://docs.ros.org/api/geometry_msgs/html/msg/PointStamped.html)): The topic on which the node publishes detected frontier points.
 
@@ -129,7 +181,7 @@ This node is another frontier detector, but it is not based on RRT. This node us
 Originally this node was implemented for comparison against the RRT-based frontier detectors. Running this node along side the RRT detectors (local and global) may enhance the speed of frotiner points detection.
 
 
-Note: You can run any type and any number of detectors, all the detectors will be publishing on the same topic which the filter node (will be explained in the following section) is subscribing to. on the other hand, the filter will pass the filtered forntier points to the assigner in order to command the robots to explore these points. 
+Note: You can run any type and any number of detectors, all the detectors will be publishing on the same topic which the filter node (will be explained in the following section) is subscribing to. on the other hand, the filter will pass the filtered forntier points to the assigner in order to command the robots to explore these points.
 
 #### 4.3.1. Parameters
  - ```~map_topic``` (string, default: "/robot_1/map"): This parameter defines the topic name on which the node will recieve the map.
@@ -147,7 +199,7 @@ The filter nodes receives the detected frontier points from all the detectors, f
 
 #### 4.4.1. Parameters
  - ```~map_topic``` (string, default: "/robot_1/map"): This parameter defines the topic name on which the node will recieve the map. The map is used to know which points are no longer frontier points (old points).
-  - ```~costmap_clearing_threshold``` (float, default: 70.0): Any frontier point that has an occupancy value greater than this threshold will be considered invalid. The occupancy value is obtained from the costmap. 
+  - ```~costmap_clearing_threshold``` (float, default: 70.0): Any frontier point that has an occupancy value greater than this threshold will be considered invalid. The occupancy value is obtained from the costmap.
   - ```~info_radius```(float, default: 1.0): The information radius used in calculating the information gain of frontier points.
   - ```~goals_topic``` (string, default: "/detected_points"): defines the topic on which the node receives detcted frontier points.
   - ```~n_robots```(float, default: 1.0): Number of robots.
@@ -156,21 +208,21 @@ The filter nodes receives the detected frontier points from all the detectors, f
 #### 4.4.2. Subscribed Topics
  - The map (Topic name is defined by the ```~map_topic``` parameter) ([nav_msgs/OccupancyGrid](http://docs.ros.org/api/nav_msgs/html/msg/OccupancyGrid.html)).
 
-- ```robot_x/move_base_node/global_costmap/costmap``` ([nav_msgs/OccupancyGrid](http://docs.ros.org/api/nav_msgs/html/msg/OccupancyGrid.html)): where x (in robot_x) refers to robot's number. 
+- ```robot_x/move_base_node/global_costmap/costmap``` ([nav_msgs/OccupancyGrid](http://docs.ros.org/api/nav_msgs/html/msg/OccupancyGrid.html)): where x (in robot_x) refers to robot's number.
 
 The filter node subscribes for all the costmap topics of all the robots, the costmap is required therefore. Normally, costmaps should be published by the navigation stack (after bringing up the navigation stack on the robots, each robot will have a costmap).
 For example, if  ```n_robots=2```, the node will subscribe to:
 ```robot_1/move_base_node/global_costmap/costmap``` and ```robot_2/move_base_node/global_costmap/costmap```.
 The costmaps are used to delete invalid points.
 
-Note: Namespaces of all the nodes corresponding to a robot should start with ```robot_x```. Again ```x``` is the robot number. 
+Note: Namespaces of all the nodes corresponding to a robot should start with ```robot_x```. Again ```x``` is the robot number.
 
  - The goals topic (Topic name is defined by the ```~goals_topic``` parameter)([geometry_msgs/PointStamped Message](http://docs.ros.org/api/geometry_msgs/html/msg/PointStamped.html)): The topic on which the filter node receives detected frontier points.
- 
+
 #### 4.4.3. Published Topics
 
  - ```frontiers``` ([visualization_msgs/Marker Message](http://docs.ros.org/api/visualization_msgs/html/msg/Marker.html)): The topic on which the filter node publishes the received frontier points for visualiztion on Rviz.
- 
+
  - ```centroids``` ([visualization_msgs/Marker Message](http://docs.ros.org/api/visualization_msgs/html/msg/Marker.html)): The topic on which the filter node publishes only the filtered frontier points for visualiztion on Rviz.
 
  - ```filtered_points``` ([PointArray](https://github.com/hasauino/rrt_exploration/blob/master/msg/PointArray.msg)): All the filtered points are sent as an array of points to the assigner node on this topic.
@@ -181,13 +233,13 @@ This node recieve target exploration goals, which are the filtered frontier poin
 #### 4.5.1. Parameters
 - ```~map_topic``` (string, default: "/robot_1/map"): This parameter defines the topic name on which the node will recieve the map. In the single robot case, this topic should be set to the map topic of the robot. In the multi-robot case, this topic must be set to global merged map.
  - ```~info_radius```(float, default: 1.0): The information radius used in calculating the information gain of frontier points.
-  
+
  - ```~info_multiplier```(float, default: 3.0): The unit is meter. This parameter is used to give importance to information gain of a frontier point over the cost (expected travel distance to a frontier point).
-  
+
 - ```~hysteresis_radius```(float, default: 3.0): The unit is meter. This parameter defines the hysteresis radius.
 
 - ```~hysteresis_gain```(float, default: 2.0): The unit is meter. This parameter defines the hysteresis gain.
- 
+
 - ```~frontiers_topic``` (string, default: "/filtered_points"): The topic on which the assigner node receives filtered frontier points.
 
 - ```~n_robots```(float, default: 1.0): Number of robots.
@@ -198,15 +250,8 @@ This node recieve target exploration goals, which are the filtered frontier poin
 
 #### 4.5.2. Subscribed Topics
  - The map (Topic name is defined by the ```~map_topic``` parameter) ([nav_msgs/OccupancyGrid](http://docs.ros.org/api/nav_msgs/html/msg/OccupancyGrid.html)).
- 
+
 - Filtered frontier points topic (Topic name is defined by the ```~frontiers_topic``` parameter)  ([PointArray](https://github.com/hasauino/rrt_exploration/blob/master/msg/PointArray.msg)).
 
 #### 4.5.3. Published Topics
 The assigner node does not publish anything. It sends the assinged point to the ```move_base_node``` using Actionlib (the assigner node is an actionlib client to the move_base_node actionlib server).
-
-
-
-
-
-
-
